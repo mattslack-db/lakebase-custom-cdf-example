@@ -13,7 +13,6 @@ CREATE TABLE IF NOT EXISTS cdc.change_log (
   new_row        JSONB,
   changed_at     TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
   transaction_id TEXT,
-  processed_at   TIMESTAMPTZ,
   CONSTRAINT change_log_payload_ck CHECK (
     (operation = 'I' AND new_row IS NOT NULL AND old_row IS NULL) OR
     (operation = 'U' AND new_row IS NOT NULL) OR

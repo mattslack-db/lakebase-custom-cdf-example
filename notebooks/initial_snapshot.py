@@ -79,17 +79,23 @@ print(f"Snapshotting {row_count} rows from app.orders into Silver...")
 
 # 3. Record the initial watermark in both checkpoints
 spark.sql(f"""
-INSERT INTO {catalog}.{schema}.ingestion_checkpoint
-  (source_table, last_event_id, updated_at)
-VALUES
-  ('orders', {initial_watermark}, current_timestamp())
+  MERGE INTO {catalog}.{schema}.ingestion_checkpoint AS t
+  USING (
+    SELECT 'orders' AS source_table, {initial_watermark} AS last_event_id, current_timestamp() AS updated_at
+  ) AS s
+  ON t.source_table = s.source_table
+  WHEN MATCHED THEN UPDATE SET last_event_id = s.last_event_id, updated_at = s.updated_at
+  WHEN NOT MATCHED THEN INSERT (source_table, last_event_id, updated_at) VALUES (s.source_table, s.last_event_id, s.updated_at)
 """)
 
 spark.sql(f"""
-INSERT INTO {catalog}.{schema}.silver_checkpoint
-  (source_table, last_event_id, updated_at)
-VALUES
-  ('orders', {initial_watermark}, current_timestamp())
+  MERGE INTO {catalog}.{schema}.silver_checkpoint AS t
+  USING (
+    SELECT 'orders' AS source_table, {initial_watermark} AS last_event_id, current_timestamp() AS updated_at
+  ) AS s
+  ON t.source_table = s.source_table
+  WHEN MATCHED THEN UPDATE SET last_event_id = s.last_event_id, updated_at = s.updated_at
+  WHEN NOT MATCHED THEN INSERT (source_table, last_event_id, updated_at) VALUES (s.source_table, s.last_event_id, s.updated_at)
 """)
 
 print(f"Initial snapshot complete: {row_count} rows in Silver, watermark={initial_watermark}")

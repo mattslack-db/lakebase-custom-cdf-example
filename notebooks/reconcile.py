@@ -85,15 +85,17 @@ from pyspark.sql.functions import sha2, concat_ws, col
 
 source_hashed = (
     source_df
-    .orderBy("order_id")
-    .withColumn("row_hash", sha2(concat_ws("|", col("order_id"), col("customer_id"), col("status"), col("total")), 256))
+    .withColumn("row_hash", sha2(concat_ws("|",
+        col("order_id"), col("customer_id"), col("status"),
+        col("total"), col("created_at"), col("updated_at")), 256))
     .select("order_id", "row_hash")
 )
 
 silver_hashed = (
     spark.sql(f"SELECT * FROM {catalog}.{schema}.silver_orders")
-    .orderBy("order_id")
-    .withColumn("row_hash", sha2(concat_ws("|", col("order_id"), col("customer_id"), col("status"), col("total")), 256))
+    .withColumn("row_hash", sha2(concat_ws("|",
+        col("order_id"), col("customer_id"), col("status"),
+        col("total"), col("created_at"), col("updated_at")), 256))
     .select("order_id", "row_hash")
 )
 

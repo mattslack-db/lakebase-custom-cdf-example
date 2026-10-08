@@ -12,7 +12,32 @@ resources:
             data_security_mode: "SINGLE_USER"
 
       tasks:
+        - task_key: setup_tables
+          notebook_task:
+            notebook_path: ../../notebooks/setup_tables.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+          job_cluster_key: main
+
+        - task_key: initial_snapshot
+          depends_on:
+            - task_key: setup_tables
+          notebook_task:
+            notebook_path: ../../notebooks/initial_snapshot.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              lakebase_project: "${var.lakebase_project}"
+              lakebase_branch: "${var.lakebase_branch}"
+              lakebase_endpoint: "${var.lakebase_endpoint}"
+              lakebase_database: "${var.lakebase_database}"
+              lakebase_role: "${var.lakebase_role}"
+          job_cluster_key: main
+
         - task_key: extractor
+          depends_on:
+            - task_key: initial_snapshot
           notebook_task:
             notebook_path: ../../notebooks/extractor.py
             base_parameters:

@@ -68,7 +68,7 @@ batch_df = (
     .option("password", pg_token)
     .option("sslmode", "require")
     .load()
-)
+).cache()
 
 batch_count = batch_df.count()
 print(f"Extracted {batch_count} events from change_log")
@@ -76,6 +76,9 @@ print(f"Extracted {batch_count} events from change_log")
 if batch_count == 0:
     print("No new events — nothing to do.")
     dbutils.notebook.exit("empty")
+
+# Compute max event_id from the cached DataFrame (single JDBC query)
+new_watermark = batch_df.agg({"event_id": "max"}).collect()[0][0]
 
 # 3. Append to Bronze Delta table (at-least-once: duplicates are OK, dedup downstream)
 from pyspark.sql.functions import current_timestamp
@@ -90,8 +93,7 @@ from pyspark.sql.functions import current_timestamp
 )
 print(f"Appended {batch_count} events to Bronze")
 
-# 4. Advance the watermark only after the append succeeds
-new_watermark = batch_df.agg({"event_id": "max"}).collect()[0][0]
+batch_df.unpersist()
 
 spark.sql(f"""
   MERGE INTO {catalog}.{schema}.ingestion_checkpoint AS t

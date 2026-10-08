@@ -44,12 +44,22 @@ def get_lakebase_connection():
 
     return host, token
 
+TOKEN_REFRESH_SECONDS = 3000
+
+_pg_host = None
+_pg_token = None
+_token_acquired_at = 0.0
+
 def get_pg_connection():
-    host, token = get_lakebase_connection()
+    global _pg_host, _pg_token, _token_acquired_at
+    now = time.time()
+    if _pg_host is None or now - _token_acquired_at > TOKEN_REFRESH_SECONDS:
+        _pg_host, _pg_token = get_lakebase_connection()
+        _token_acquired_at = now
     return psycopg2.connect(
-        host=host,
+        host=_pg_host,
         user=lakebase_role,
-        password=token,
+        password=_pg_token,
         dbname=lakebase_database,
         sslmode="require",
     )
@@ -96,19 +106,31 @@ def random_delete(conn):
 end_time = time.time() + run_minutes * 60
 ops = [random_insert, random_update, random_delete]
 
+conn = None
 while time.time() < end_time:
     try:
-        conn = get_pg_connection()
-        try:
-            op = random.choices(ops, weights=[40, 40, 20], k=1)[0]
-            op(conn)
-        except Exception as e:
-            print(f"[{datetime.now()}] ERROR: {e}")
-            conn.rollback()
-        finally:
-            conn.close()
+        if conn is None or conn.closed:
+            conn = get_pg_connection()
+        op = random.choices(ops, weights=[40, 40, 20], k=1)[0]
+        op(conn)
     except Exception as e:
-        print(f"[{datetime.now()}] CONNECTION ERROR: {e}")
+        print(f"[{datetime.now()}] ERROR: {e}")
+        if conn is not None:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            try:
+                conn.close()
+            except Exception:
+                pass
+            conn = None
     time.sleep(interval_seconds)
+
+if conn is not None:
+    try:
+        conn.close()
+    except Exception:
+        pass
 
 print(f"[{datetime.now()}] Data generator finished after {run_minutes} minutes.")
