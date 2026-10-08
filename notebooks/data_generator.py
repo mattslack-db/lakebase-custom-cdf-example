@@ -4,10 +4,9 @@
 
 import random
 import time
-import json
-import urllib.request
 import psycopg2
 from datetime import datetime
+from databricks.sdk import WorkspaceClient
 
 lakebase_project = dbutils.widgets.get("lakebase_project")
 lakebase_branch = dbutils.widgets.get("lakebase_branch")
@@ -18,37 +17,20 @@ lakebase_role = dbutils.widgets.get("lakebase_role")
 run_minutes = int(dbutils.widgets.get("run_minutes"))
 interval_seconds = int(dbutils.widgets.get("interval_seconds"))
 
-def get_lakebase_connection():
-    ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-    api_url = ctx.apiUrl().get()
-    api_token = ctx.apiToken().get()
-
-    endpoint_name = f"projects/{lakebase_project}/branches/{lakebase_branch}/endpoints/{lakebase_endpoint}"
-
-    req1 = urllib.request.Request(
-        f"{api_url}/api/2.0/postgres/{endpoint_name}",
-        headers={"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req1) as resp1:
-        ep_data = json.loads(resp1.read())
-    host = ep_data["status"]["hosts"]["host"]
-
-    req2 = urllib.request.Request(
-        f"{api_url}/api/2.0/postgres/credentials",
-        data=json.dumps({"endpoint": endpoint_name}).encode(),
-        headers={"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"},
-    )
-    with urllib.request.urlopen(req2) as resp2:
-        cred_data = json.loads(resp2.read())
-    token = cred_data["token"]
-
-    return host, token
-
-TOKEN_REFRESH_SECONDS = 3000
+endpoint_name = f"projects/{lakebase_project}/branches/{lakebase_branch}/endpoints/{lakebase_endpoint}"
 
 _pg_host = None
 _pg_token = None
 _token_acquired_at = 0.0
+TOKEN_REFRESH_SECONDS = 3000
+
+def get_lakebase_connection():
+    w = WorkspaceClient()
+    ep_data = w.api_client.do("GET", f"/api/2.0/postgres/{endpoint_name}")
+    host = ep_data["status"]["hosts"]["host"]
+    cred_data = w.api_client.do("POST", "/api/2.0/postgres/credentials", body={"endpoint": endpoint_name})
+    token = cred_data["token"]
+    return host, token
 
 def get_pg_connection():
     global _pg_host, _pg_token, _token_acquired_at

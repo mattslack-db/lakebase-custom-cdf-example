@@ -2,8 +2,7 @@
 # ---- Micro-batch extractor: reads cdc.change_log via JDBC, appends to Bronze Delta ----
 # See design doc: "Databricks ingestion pattern" section.
 
-import json
-import urllib.request
+from databricks.sdk import WorkspaceClient
 
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
@@ -14,30 +13,21 @@ lakebase_database = dbutils.widgets.get("lakebase_database")
 lakebase_role = dbutils.widgets.get("lakebase_role")
 batch_size = int(dbutils.widgets.get("batch_size"))
 
-# --- Get Lakebase connection via REST API (urllib, no external deps) ---
-ctx = dbutils.notebook.entry_point.getDbutils().notebook().getContext()
-api_url = ctx.apiUrl().get()
-api_token = ctx.apiToken().get()
-
 endpoint_name = f"projects/{lakebase_project}/branches/{lakebase_branch}/endpoints/{lakebase_endpoint}"
 
-# GET endpoint info
-req1 = urllib.request.Request(
-    f"{api_url}/api/2.0/postgres/{endpoint_name}",
-    headers={"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"},
+w = WorkspaceClient()
+
+ep_data = w.api_client.do(
+    "GET",
+    f"/api/2.0/postgres/{endpoint_name}",
 )
-with urllib.request.urlopen(req1) as resp1:
-    ep_data = json.loads(resp1.read())
 pg_host = ep_data["status"]["hosts"]["host"]
 
-# POST generate credential
-req2 = urllib.request.Request(
-    f"{api_url}/api/2.0/postgres/credentials",
-    data=json.dumps({"endpoint": endpoint_name}).encode(),
-    headers={"Authorization": f"Bearer {api_token}", "Content-Type": "application/json"},
+cred_data = w.api_client.do(
+    "POST",
+    "/api/2.0/postgres/credentials",
+    body={"endpoint": endpoint_name},
 )
-with urllib.request.urlopen(req2) as resp2:
-    cred_data = json.loads(resp2.read())
 pg_token = cred_data["token"]
 
 print(f"Connected to Lakebase: {pg_host}")
