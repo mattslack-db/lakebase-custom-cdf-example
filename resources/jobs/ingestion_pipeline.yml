@@ -1,0 +1,59 @@
+resources:
+  jobs:
+    ingestion_pipeline:
+      name: lakebase-custom-cdf-ingestion-pipeline
+
+      job_clusters:
+        - job_cluster_key: main
+          new_cluster:
+            spark_version: "16.4.x-scala2.12"
+            node_type_id: "i3.xlarge"
+            num_workers: 1
+            data_security_mode: "SINGLE_USER"
+
+      tasks:
+        - task_key: extractor
+          notebook_task:
+            notebook_path: ../../notebooks/extractor.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              lakebase_project: "${var.lakebase_project}"
+              lakebase_branch: "${var.lakebase_branch}"
+              lakebase_endpoint: "${var.lakebase_endpoint}"
+              lakebase_database: "${var.lakebase_database}"
+              lakebase_role: "${var.lakebase_role}"
+              batch_size: "${var.batch_size}"
+          job_cluster_key: main
+
+        - task_key: silver_merge
+          depends_on:
+            - task_key: extractor
+          notebook_task:
+            notebook_path: ../../notebooks/silver_merge.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+          job_cluster_key: main
+
+        - task_key: reconcile
+          depends_on:
+            - task_key: silver_merge
+          notebook_task:
+            notebook_path: ../../notebooks/reconcile.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              lakebase_project: "${var.lakebase_project}"
+              lakebase_branch: "${var.lakebase_branch}"
+              lakebase_endpoint: "${var.lakebase_endpoint}"
+              lakebase_database: "${var.lakebase_database}"
+              lakebase_role: "${var.lakebase_role}"
+          job_cluster_key: main
+
+      schedule:
+        quartz_cron_expression: "0 */1 * * * ?"
+        timezone_id: "UTC"
+        pause_status: "PAUSED"
+
+      max_concurrent_runs: 1

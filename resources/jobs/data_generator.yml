@@ -1,0 +1,28 @@
+resources:
+  jobs:
+    data_generator:
+      name: lakebase-custom-cdf-data-generator
+
+      job_clusters:
+        - job_cluster_key: main
+          new_cluster:
+            spark_version: "16.4.x-scala2.12"
+            node_type_id: "i3.xlarge"
+            num_workers: 1
+            data_security_mode: "SINGLE_USER"
+
+      tasks:
+        - task_key: data_generator
+          notebook_task:
+            notebook_path: ../../notebooks/data_generator.py
+            base_parameters:
+              lakebase_project: "${var.lakebase_project}"
+              lakebase_branch: "${var.lakebase_branch}"
+              lakebase_endpoint: "${var.lakebase_endpoint}"
+              lakebase_database: "${var.lakebase_database}"
+              lakebase_role: "${var.lakebase_role}"
+              run_minutes: "${var.generator_run_minutes}"
+              interval_seconds: "${var.generator_interval_seconds}"
+          job_cluster_key: main
+
+      max_concurrent_runs: 1

@@ -1,0 +1,42 @@
+bundle:
+  name: lakebase-custom-cdf
+
+variables:
+  catalog:
+    description: "Unity Catalog for Bronze/Silver tables"
+    default: "classic_stable_t8yuk8_catalog"
+  schema:
+    description: "Schema for Bronze/Silver tables"
+    default: "custom_cdf_demo"
+  lakebase_project:
+    description: "Lakebase project ID"
+    default: "custom-cdf-demo"
+  lakebase_branch:
+    description: "Lakebase branch ID"
+    default: "production"
+  lakebase_endpoint:
+    description: "Lakebase endpoint ID"
+    default: "primary"
+  lakebase_database:
+    description: "Postgres database name in Lakebase"
+    default: "databricks_postgres"
+  lakebase_role:
+    description: "Postgres role/username for JDBC connection"
+    default: "admin"
+  batch_size:
+    description: "Extractor batch size (max events per run)"
+    default: "1000"
+  generator_run_minutes:
+    description: "How long the data generator runs per invocation (minutes)"
+    default: "120"
+  generator_interval_seconds:
+    description: "Seconds between random mutations"
+    default: "3"
+
+include:
+  - resources/jobs/*.yml
+
+targets:
+  dev:
+    mode: development
+    default: true
