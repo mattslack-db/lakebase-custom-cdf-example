@@ -15,18 +15,9 @@ lakebase_role = dbutils.widgets.get("lakebase_role")
 endpoint_name = f"projects/{lakebase_project}/branches/{lakebase_branch}/endpoints/{lakebase_endpoint}"
 
 w = WorkspaceClient()
-
-ep_data = w.api_client.do(
-    "GET",
-    f"/api/2.0/postgres/{endpoint_name}",
-)
+ep_data = w.api_client.do("GET", f"/api/2.0/postgres/{endpoint_name}")
 pg_host = ep_data["status"]["hosts"]["host"]
-
-cred_data = w.api_client.do(
-    "POST",
-    "/api/2.0/postgres/credentials",
-    body={"endpoint": endpoint_name},
-)
+cred_data = w.api_client.do("POST", "/api/2.0/postgres/credentials", body={"endpoint": endpoint_name})
 pg_token = cred_data["token"]
 
 # Check if Silver already has data — skip if so

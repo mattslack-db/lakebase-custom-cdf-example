@@ -16,20 +16,10 @@ batch_size = int(dbutils.widgets.get("batch_size"))
 endpoint_name = f"projects/{lakebase_project}/branches/{lakebase_branch}/endpoints/{lakebase_endpoint}"
 
 w = WorkspaceClient()
-
-ep_data = w.api_client.do(
-    "GET",
-    f"/api/2.0/postgres/{endpoint_name}",
-)
+ep_data = w.api_client.do("GET", f"/api/2.0/postgres/{endpoint_name}")
 pg_host = ep_data["status"]["hosts"]["host"]
-
-cred_data = w.api_client.do(
-    "POST",
-    "/api/2.0/postgres/credentials",
-    body={"endpoint": endpoint_name},
-)
+cred_data = w.api_client.do("POST", "/api/2.0/postgres/credentials", body={"endpoint": endpoint_name})
 pg_token = cred_data["token"]
-
 print(f"Connected to Lakebase: {pg_host}")
 
 # 1. Read the last watermark from the checkpoint table

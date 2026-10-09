@@ -19,16 +19,19 @@ interval_seconds = int(dbutils.widgets.get("interval_seconds"))
 
 endpoint_name = f"projects/{lakebase_project}/branches/{lakebase_branch}/endpoints/{lakebase_endpoint}"
 
+_w = None
 _pg_host = None
 _pg_token = None
 _token_acquired_at = 0.0
 TOKEN_REFRESH_SECONDS = 3000
 
-def get_lakebase_connection():
-    w = WorkspaceClient()
-    ep_data = w.api_client.do("GET", f"/api/2.0/postgres/{endpoint_name}")
+def _get_lakebase_connection():
+    global _w
+    if _w is None:
+        _w = WorkspaceClient()
+    ep_data = _w.api_client.do("GET", f"/api/2.0/postgres/{endpoint_name}")
     host = ep_data["status"]["hosts"]["host"]
-    cred_data = w.api_client.do("POST", "/api/2.0/postgres/credentials", body={"endpoint": endpoint_name})
+    cred_data = _w.api_client.do("POST", "/api/2.0/postgres/credentials", body={"endpoint": endpoint_name})
     token = cred_data["token"]
     return host, token
 
@@ -36,7 +39,7 @@ def get_pg_connection():
     global _pg_host, _pg_token, _token_acquired_at
     now = time.time()
     if _pg_host is None or now - _token_acquired_at > TOKEN_REFRESH_SECONDS:
-        _pg_host, _pg_token = get_lakebase_connection()
+        _pg_host, _pg_token = _get_lakebase_connection()
         _token_acquired_at = now
     return psycopg2.connect(
         host=_pg_host,
