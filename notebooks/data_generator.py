@@ -1,4 +1,8 @@
 # Databricks notebook source
+# MAGIC %pip install databricks-sdk --upgrade psycopg2-binary
+# COMMAND ----------
+# MAGIC dbutils.library.restartPython()
+# COMMAND ----------
 # ---- Data generator: continuously makes pseudo-random INSERT/UPDATE/DELETE on app.orders ----
 # The trigger on app.orders captures every change into cdc.change_log.
 
@@ -29,10 +33,10 @@ def _get_lakebase_connection():
     global _w
     if _w is None:
         _w = WorkspaceClient()
-    ep_data = _w.api_client.do("GET", f"/api/2.0/postgres/{endpoint_name}")
-    host = ep_data["status"]["hosts"]["host"]
-    cred_data = _w.api_client.do("POST", "/api/2.0/postgres/credentials", body={"endpoint": endpoint_name})
-    token = cred_data["token"]
+    ep = _w.postgres.get_endpoint(name=endpoint_name)
+    host = ep.status.hosts.host
+    cred = _w.postgres.generate_database_credential(endpoint=endpoint_name)
+    token = cred.token
     return host, token
 
 def get_pg_connection():

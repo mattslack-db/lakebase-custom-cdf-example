@@ -1,4 +1,8 @@
 # Databricks notebook source
+# MAGIC %pip install databricks-sdk --upgrade
+# COMMAND ----------
+# MAGIC dbutils.library.restartPython()
+# COMMAND ----------
 # ---- Reconciliation: compare Lakebase source table with Databricks Silver table ----
 # See design doc: "Initial load and cutover" step 5 and "Operational controls".
 
@@ -15,10 +19,10 @@ lakebase_role = dbutils.widgets.get("lakebase_role")
 endpoint_name = f"projects/{lakebase_project}/branches/{lakebase_branch}/endpoints/{lakebase_endpoint}"
 
 w = WorkspaceClient()
-ep_data = w.api_client.do("GET", f"/api/2.0/postgres/{endpoint_name}")
-pg_host = ep_data["status"]["hosts"]["host"]
-cred_data = w.api_client.do("POST", "/api/2.0/postgres/credentials", body={"endpoint": endpoint_name})
-pg_token = cred_data["token"]
+ep = w.postgres.get_endpoint(name=endpoint_name)
+pg_host = ep.status.hosts.host
+cred = w.postgres.generate_database_credential(endpoint=endpoint_name)
+pg_token = cred.token
 jdbc_url = f"jdbc:postgresql://{pg_host}:5432/{lakebase_database}"
 
 # --- 1. Read source table from Lakebase ---

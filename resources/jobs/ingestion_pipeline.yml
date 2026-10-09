@@ -6,7 +6,7 @@ resources:
       job_clusters:
         - job_cluster_key: main
           new_cluster:
-            spark_version: "16.4.x-scala2.12"
+            spark_version: "18.x-scala2.13"
             node_type_id: "i3.xlarge"
             num_workers: 1
             data_security_mode: "SINGLE_USER"
@@ -33,6 +33,9 @@ resources:
               lakebase_endpoint: "${var.lakebase_endpoint}"
               lakebase_database: "${var.lakebase_database}"
               lakebase_role: "${var.lakebase_role}"
+          libraries:
+            - pypi:
+                package: databricks-sdk
           job_cluster_key: main
 
         - task_key: extractor
@@ -49,6 +52,9 @@ resources:
               lakebase_database: "${var.lakebase_database}"
               lakebase_role: "${var.lakebase_role}"
               batch_size: "${var.batch_size}"
+          libraries:
+            - pypi:
+                package: databricks-sdk
           job_cluster_key: main
 
         - task_key: silver_merge
@@ -74,6 +80,9 @@ resources:
               lakebase_endpoint: "${var.lakebase_endpoint}"
               lakebase_database: "${var.lakebase_database}"
               lakebase_role: "${var.lakebase_role}"
+          libraries:
+            - pypi:
+                package: databricks-sdk
           job_cluster_key: main
 
       schedule:
