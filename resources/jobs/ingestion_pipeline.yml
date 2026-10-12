@@ -75,6 +75,32 @@ resources:
             base_parameters:
               catalog: "${var.catalog}"
               schema: "${var.schema}"
+              silver_table: "silver_orders"
+              lakebase_project: "${var.lakebase_project}"
+              lakebase_branch: "${var.lakebase_branch}"
+              lakebase_endpoint: "${var.lakebase_endpoint}"
+              lakebase_database: "${var.lakebase_database}"
+              lakebase_role: "${var.lakebase_role}"
+          libraries:
+            - pypi:
+                package: databricks-sdk
+          job_cluster_key: main
+
+        - task_key: silver_auto_cdc
+          depends_on:
+            - task_key: extractor
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.silver_auto_cdc.id}
+
+        - task_key: reconcile_auto_cdc
+          depends_on:
+            - task_key: silver_auto_cdc
+          notebook_task:
+            notebook_path: ../../notebooks/reconcile.py
+            base_parameters:
+              catalog: "${var.catalog}"
+              schema: "${var.schema}"
+              silver_table: "silver_orders_auto_cdc"
               lakebase_project: "${var.lakebase_project}"
               lakebase_branch: "${var.lakebase_branch}"
               lakebase_endpoint: "${var.lakebase_endpoint}"

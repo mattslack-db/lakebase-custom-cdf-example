@@ -1,0 +1,14 @@
+resources:
+  pipelines:
+    silver_auto_cdc:
+      name: lakebase-custom-cdf-silver-auto-cdc
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      continuous: false
+      configuration:
+        bronze_table: ${var.catalog}.${var.schema}.bronze_change_log
+        snapshot_table: ${var.catalog}.${var.schema}.orders_snapshot
+      libraries:
+        - glob:
+            include: ../../src/pipelines/silver_auto_cdc/**

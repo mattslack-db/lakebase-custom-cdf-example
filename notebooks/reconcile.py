@@ -10,6 +10,7 @@ from databricks.sdk import WorkspaceClient
 
 catalog = dbutils.widgets.get("catalog")
 schema = dbutils.widgets.get("schema")
+silver_table = f"{catalog}.{schema}.{dbutils.widgets.get('silver_table')}"
 lakebase_project = dbutils.widgets.get("lakebase_project")
 lakebase_branch = dbutils.widgets.get("lakebase_branch")
 lakebase_endpoint = dbutils.widgets.get("lakebase_endpoint")
@@ -37,11 +38,11 @@ source_df = (
 )
 
 source_count = source_df.count()
-silver_count = spark.sql(f"SELECT count(*) FROM {catalog}.{schema}.silver_orders").collect()[0][0]
+silver_count = spark.sql(f"SELECT count(*) FROM {silver_table}").collect()[0][0]
 
 print(f"=== Row Count Reconciliation ===")
 print(f"Source (Lakebase app.orders): {source_count}")
-print(f"Silver (Databricks):          {silver_count}")
+print(f"Silver ({silver_table}): {silver_count}")
 print(f"Match: {source_count == silver_count}")
 
 if source_count != silver_count:
@@ -49,7 +50,7 @@ if source_count != silver_count:
 
 # --- 2. Primary key set comparison ---
 source_keys = source_df.select("order_id").distinct()
-silver_keys = spark.sql(f"SELECT order_id FROM {catalog}.{schema}.silver_orders").distinct()
+silver_keys = spark.sql(f"SELECT order_id FROM {silver_table}").distinct()
 
 source_key_set = set(row.order_id for row in source_keys.collect())
 silver_key_set = set(row.order_id for row in silver_keys.collect())
@@ -78,7 +79,7 @@ source_hashed = (
 )
 
 silver_hashed = (
-    spark.sql(f"SELECT * FROM {catalog}.{schema}.silver_orders")
+    spark.sql(f"SELECT * FROM {silver_table}")
     .withColumn("row_hash", sha2(concat_ws("|",
         col("order_id"), col("customer_id"), col("status"),
         col("total"), col("created_at"), col("updated_at")), 256))
