@@ -11,3 +11,4 @@ __pycache__/
 
 # Local environment overrides (contains role/email)
 .env
+.isaac/
