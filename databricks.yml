@@ -4,7 +4,7 @@ bundle:
 variables:
   catalog:
     description: "Unity Catalog for Bronze/Silver tables"
-    default: "classic_stable_t8yuk8_catalog"
+    default: "main"
   schema:
     description: "Schema for Bronze/Silver tables"
     default: "custom_cdf_demo"
